@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import io.ktor.server.http.content.*
 import io.ktor.http.content.*
+import io.ktor.server.websocket.*
+import io.ktor.websocket.*
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
@@ -48,6 +50,9 @@ class KtorServer(
                 allowHeader(HttpHeaders.Authorization)
                 allowHeader(HttpHeaders.Range)
             }
+            install(WebSockets) {
+                masking = false
+            }
             
             // For simplicity in this example, basic auth is defined.
             install(Authentication) {
@@ -71,6 +76,68 @@ class KtorServer(
             }
 
             routing {
+                // Remote Control WebSocket Route (Unauthenticated or Basic Auth compatible)
+                webSocket("/ws/remote") {
+                    val clientIp = call.request.local.remoteHost
+                    MediaServerService.logMessage("WS", "Remote WebSocket connected from $clientIp")
+                    RemoteControlManager.addSession(this)
+                    try {
+                        for (frame in incoming) {
+                            if (frame is Frame.Text) {
+                                val text = frame.readText()
+                                RemoteControlManager.handleIncomingMessage(this, text)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        MediaServerService.logMessage("WS", "WebSocket session closed ($clientIp)")
+                    } finally {
+                        RemoteControlManager.removeSession(this)
+                        MediaServerService.logMessage("WS", "Remote WebSocket disconnected from $clientIp")
+                    }
+                }
+
+                get("/api/remote/pairing") {
+                    val code = RemoteControlManager.getPairingCode()
+                    val state = RemoteControlManager.playbackState.value
+                    val resp = JSONObject()
+                    resp.put("pairingCode", code)
+                    resp.put("connectedClients", state.activeClientsCount)
+                    resp.put("mediaTitle", state.mediaTitle)
+                    call.respondText(resp.toString(), ContentType.Application.Json)
+                }
+
+                get("/api/remote/qr") {
+                    val host = call.request.host()
+                    val pairingCode = RemoteControlManager.getPairingCode()
+                    val targetUrl = "http://$host:$port/?pair=$pairingCode"
+                    val matrix = QrCodeGenerator.encodeToMatrix(targetUrl)
+                    val matrixSize = matrix.size
+                    val svg = StringBuilder()
+                    svg.append("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $matrixSize $matrixSize" shape-rendering="crispEdges">""")
+                    svg.append("""<rect width="100%" height="100%" fill="#ffffff"/>""")
+                    for (r in 0 until matrixSize) {
+                        for (c in 0 until matrixSize) {
+                            if (matrix[r][c]) {
+                                svg.append("""<rect x="$c" y="$r" width="0.95" height="0.95" fill="#0f172a" rx="0.1"/>""")
+                            }
+                        }
+                    }
+                    svg.append("</svg>")
+                    call.respondText(svg.toString(), ContentType.Image.SVG)
+                }
+
+                post("/api/remote/command") {
+                    val text = call.receiveText()
+                    try {
+                        val json = JSONObject(text)
+                        val action = json.optString("action", "")
+                        RemoteControlManager.sendCommand(action)
+                        call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.BadRequest, e.message ?: "Error")
+                    }
+                }
+
                 authenticate("auth-basic") {
                     get("/") {
                         val clientIp = call.request.local.remoteHost

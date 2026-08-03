@@ -200,7 +200,7 @@ fun ServerDashboard(
                     .fillMaxWidth()
                     .background(Color.White)
             ) {
-                val tabWidth = maxWidth / 4
+                val tabWidth = maxWidth / 5
                 val indicatorOffset by animateDpAsState(
                     targetValue = tabWidth * selectedTab,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -219,7 +219,7 @@ fun ServerDashboard(
                             modifier = Modifier
                                 .offset(x = indicatorOffset)
                                 .width(tabWidth)
-                                .padding(horizontal = 20.dp)
+                                .padding(horizontal = 12.dp)
                                 .fillMaxHeight()
                                 .clip(CircleShape)
                                 .background(Indigo600)
@@ -233,7 +233,7 @@ fun ServerDashboard(
                     ) {
                         NavigationBarItem(
                             icon = { Icon(Icons.Default.Dashboard, contentDescription = "Dashboard") },
-                            label = { Text("DASHBOARD", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) },
+                            label = { Text("DASHBOARD", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
                             colors = NavigationBarItemDefaults.colors(
@@ -245,8 +245,8 @@ fun ServerDashboard(
                             )
                         )
                         NavigationBarItem(
-                            icon = { Icon(Icons.Default.People, contentDescription = "Profiles") },
-                            label = { Text("PROFILES", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) },
+                            icon = { Icon(Icons.Default.PhoneAndroid, contentDescription = "Remote") },
+                            label = { Text("REMOTE", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
                             colors = NavigationBarItemDefaults.colors(
@@ -258,8 +258,8 @@ fun ServerDashboard(
                             )
                         )
                         NavigationBarItem(
-                            icon = { Icon(Icons.Default.Analytics, contentDescription = "Analytics") },
-                            label = { Text("ANALYTICS", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) },
+                            icon = { Icon(Icons.Default.People, contentDescription = "Profiles") },
+                            label = { Text("PROFILES", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
                             selected = selectedTab == 2,
                             onClick = { selectedTab = 2 },
                             colors = NavigationBarItemDefaults.colors(
@@ -271,10 +271,23 @@ fun ServerDashboard(
                             )
                         )
                         NavigationBarItem(
-                            icon = { Icon(Icons.Default.SettingsInputAntenna, contentDescription = "Logs") },
-                            label = { Text("LOGS", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) },
+                            icon = { Icon(Icons.Default.Analytics, contentDescription = "Analytics") },
+                            label = { Text("ANALYTICS", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
                             selected = selectedTab == 3,
                             onClick = { selectedTab = 3 },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Indigo600,
+                                selectedTextColor = Indigo600,
+                                indicatorColor = Color.Transparent,
+                                unselectedIconColor = Slate400,
+                                unselectedTextColor = Slate400
+                            )
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.SettingsInputAntenna, contentDescription = "Logs") },
+                            label = { Text("LOGS", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
+                            selected = selectedTab == 4,
+                            onClick = { selectedTab = 4 },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Indigo600,
                                 selectedTextColor = Indigo600,
@@ -663,14 +676,19 @@ fun ServerDashboard(
             Spacer(modifier = Modifier.height(24.dp))
         }
         } else if (selectedTab == 1) {
-            ProfileManagementScreen(
+            RemoteControlScreen(
+                serverUrl = serverUrl ?: "http://localhost:8080",
                 modifier = Modifier.padding(paddingValues)
             )
         } else if (selectedTab == 2) {
-            AnalyticsScreen(
+            ProfileManagementScreen(
                 modifier = Modifier.padding(paddingValues)
             )
         } else if (selectedTab == 3) {
+            AnalyticsScreen(
+                modifier = Modifier.padding(paddingValues)
+            )
+        } else if (selectedTab == 4) {
             ServerActivityScreen(
                 modifier = Modifier.padding(paddingValues)
             )

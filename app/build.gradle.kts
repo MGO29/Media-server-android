@@ -120,6 +120,7 @@ dependencies {
   implementation(libs.ktor.server.auth)
   implementation(libs.ktor.server.html.builder)
   implementation(libs.ktor.server.cors)
+  implementation(libs.ktor.server.websockets)
   implementation("org.slf4j:slf4j-android:1.7.36")
   implementation("androidx.documentfile:documentfile:1.0.1")
   testImplementation(libs.androidx.compose.ui.test.junit4)

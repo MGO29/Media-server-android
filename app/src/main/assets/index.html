@@ -1512,6 +1512,12 @@
         </nav>
 
         <div class="nav-actions">
+            <!-- WebSocket Remote Badge Button -->
+            <button id="webRemoteBadgeBtn" class="btn-shadcn btn-shadcn-secondary btn-shadcn-sm" onclick="openPairingModal()" style="display: flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 14px;">
+                <i data-lucide="smartphone" style="width: 14px; height: 14px; color: #3b82f6;"></i>
+                <span id="remoteBadgeText" style="font-size: 12px; font-weight: 600;">Remote: Active 🟢</span>
+            </button>
+
             <!-- Profile Chip -->
             <div class="profile-chip" tabindex="0" role="button" onclick="toggleProfileMenu(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleProfileMenu(event);}">
                 <div id="navAvatarCircle" class="avatar-circle" style="background: #6366f1;">A</div>
@@ -1527,6 +1533,10 @@
                             <div class="profile-menu-header-subtitle">Active Profile</div>
                         </div>
                     </div>
+                    <button class="profile-menu-item" tabindex="0" onclick="openPairingModal()">
+                        <i data-lucide="qr-code" style="width: 16px; height: 16px;"></i>
+                        <span>Remote Pairing & QR</span>
+                    </button>
                     <button class="profile-menu-item" tabindex="0" onclick="openProfileSelectionScreen()">
                         <i data-lucide="users" style="width: 16px; height: 16px;"></i>
                         <span>Switch Profile</span>
@@ -1995,6 +2005,45 @@
         </div>
     </div>
 
+    <!-- ==================== MODAL: REMOTE CONTROL & QR PAIRING ==================== -->
+    <div id="pairingModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this) closeModal('pairingModal')">
+        <div class="modal-dialog" style="max-width: 480px; text-align: center;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+                <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="qr-code" style="color: #3b82f6;"></i>
+                    <span>Remote Control & QR Pairing</span>
+                </div>
+                <button class="modal-close-btn" tabindex="0" onclick="closeModal('pairingModal')"><i data-lucide="x"></i></button>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.04); padding: 16px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 16px;">
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px;">Pairing Code</div>
+                <div id="pairingCodeDisplay" style="font-size: 32px; font-weight: 800; letter-spacing: 3px; color: #3b82f6;">----</div>
+                <div id="wsRemoteStatusText" style="font-size: 13px; font-weight: 600; color: #10b981; margin-top: 6px;">🟢 WebSocket Connected</div>
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+                Scan this QR code with your mobile camera or paired remote app to open the remote control and control playback in real-time.
+            </p>
+
+            <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                <div style="background: white; padding: 14px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: inline-block;">
+                    <img id="pairingQrImg" src="/api/remote/qr" alt="Pairing QR Code" style="width: 180px; height: 180px; display: block;" />
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn-shadcn btn-shadcn-secondary" tabindex="0" onclick="refreshPairingQr()">
+                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                    <span>Refresh Code</span>
+                </button>
+                <button class="btn-shadcn btn-shadcn-primary" tabindex="0" onclick="closeModal('pairingModal')">
+                    <span>Done</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container"></div>
 
@@ -2062,6 +2111,136 @@
             loadMediaList();
             setInterval(loadMediaList, 6000); // Background refresh
             setTimeout(updateNavUnderline, 100);
+            initRemoteWebSocket();
+        }
+
+        // --- WEBSOCKET REMOTE CONTROL & PAIRING ---
+        let wsRemote = null;
+
+        function initRemoteWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/remote`;
+
+            try {
+                wsRemote = new WebSocket(wsUrl);
+
+                wsRemote.onopen = () => {
+                    const badge = document.getElementById('remoteBadgeText');
+                    if (badge) badge.innerText = "Remote: Active 🟢";
+                    const status = document.getElementById('wsRemoteStatusText');
+                    if (status) status.innerText = "🟢 WebSocket Connected & Listening";
+                    sendPlayerStateSync();
+                };
+
+                wsRemote.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'command') {
+                            handleRemoteCommand(data);
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse WS message", e);
+                    }
+                };
+
+                wsRemote.onclose = () => {
+                    const badge = document.getElementById('remoteBadgeText');
+                    if (badge) badge.innerText = "Remote: Offline 🔴";
+                    const status = document.getElementById('wsRemoteStatusText');
+                    if (status) status.innerText = "🔴 Disconnected - Reconnecting...";
+                    setTimeout(initRemoteWebSocket, 3000);
+                };
+
+                wsRemote.onerror = (err) => {
+                    if (wsRemote) wsRemote.close();
+                };
+            } catch (e) {
+                console.error("Failed to initialize WebSocket:", e);
+            }
+        }
+
+        function sendPlayerStateSync() {
+            if (!wsRemote || wsRemote.readyState !== WebSocket.OPEN) return;
+            const state = {
+                type: 'state',
+                title: currentMediaName || 'No Media Playing',
+                currentTime: vjsPlayer ? (vjsPlayer.currentTime() || 0) : 0,
+                duration: vjsPlayer ? (vjsPlayer.duration() || 0) : 0,
+                paused: vjsPlayer ? vjsPlayer.paused() : true,
+                volume: vjsPlayer ? vjsPlayer.volume() : 1.0,
+                subtitle: getCurrentSubtitleTrackName()
+            };
+            wsRemote.send(JSON.stringify(state));
+        }
+
+        function handleRemoteCommand(data) {
+            const action = data.action;
+            if (!action) return;
+            showToast(`Remote Action: ${action.replace('_', ' ').toUpperCase()}`);
+
+            if (!vjsPlayer) return;
+
+            switch(action) {
+                case 'play':
+                    vjsPlayer.play();
+                    break;
+                case 'pause':
+                    vjsPlayer.pause();
+                    break;
+                case 'toggle_play':
+                    vjsPlayer.paused() ? vjsPlayer.play() : vjsPlayer.pause();
+                    break;
+                case 'seek_forward':
+                    vjsPlayer.currentTime((vjsPlayer.currentTime() || 0) + 10);
+                    break;
+                case 'seek_backward':
+                    vjsPlayer.currentTime(Math.max(0, (vjsPlayer.currentTime() || 0) - 10));
+                    break;
+                case 'volume_up':
+                    vjsPlayer.volume(Math.min(1, (vjsPlayer.volume() || 0) + 0.1));
+                    break;
+                case 'volume_down':
+                    vjsPlayer.volume(Math.max(0, (vjsPlayer.volume() || 0) - 0.1));
+                    break;
+                case 'mute':
+                    vjsPlayer.muted(!vjsPlayer.muted());
+                    break;
+                case 'toggle_osd':
+                    toggleOsdOverlay();
+                    break;
+                case 'close_player':
+                    closePlayer();
+                    break;
+                case 'play_media':
+                    if (data.fileName) playMedia(data.fileName);
+                    break;
+            }
+            sendPlayerStateSync();
+        }
+
+        function openPairingModal() {
+            fetch('/api/remote/pairing')
+                .then(res => res.json())
+                .then(data => {
+                    const codeEl = document.getElementById('pairingCodeDisplay');
+                    if (codeEl) codeEl.innerText = data.pairingCode || '8492-MED';
+                    const img = document.getElementById('pairingQrImg');
+                    if (img) img.src = '/api/remote/qr?cb=' + Date.now();
+                })
+                .catch(() => {});
+            document.getElementById('pairingModal').style.display = 'flex';
+        }
+
+        function refreshPairingQr() {
+            fetch('/api/remote/pairing')
+                .then(res => res.json())
+                .then(data => {
+                    const codeEl = document.getElementById('pairingCodeDisplay');
+                    if (codeEl) codeEl.innerText = data.pairingCode || '8492-MED';
+                    const img = document.getElementById('pairingQrImg');
+                    if (img) img.src = '/api/remote/qr?cb=' + Date.now();
+                    showToast('Pairing code refreshed');
+                });
         }
 
         // --- TAB SWITCHING & SLIDING UNDERLINE ---
@@ -3030,14 +3209,20 @@
 
         function setupPlayerEvents() {
             let lastSaveTime = 0;
+            let lastWsSyncTime = 0;
             vjsPlayer.on('timeupdate', () => {
+                const now = Date.now();
+                if (now - lastWsSyncTime > 1000) {
+                    lastWsSyncTime = now;
+                    sendPlayerStateSync();
+                }
+
                 if (currentMediaName && vjsPlayer.duration() && window.currentProfile) {
                     const ct = vjsPlayer.currentTime();
                     const dur = vjsPlayer.duration();
                     const pct = (ct / dur) * 100;
                     window.userProgress[currentMediaName] = { time: ct, pct: pct };
 
-                    const now = Date.now();
                     if (now - lastSaveTime > 5000) {
                         lastSaveTime = now;
                         fetch('/api/profiles/' + window.currentProfile + '/progress', {
@@ -3048,6 +3233,11 @@
                     }
                 }
             });
+
+            vjsPlayer.on('play', () => sendPlayerStateSync());
+            vjsPlayer.on('pause', () => sendPlayerStateSync());
+            vjsPlayer.on('volumechange', () => sendPlayerStateSync());
+            vjsPlayer.on('seeked', () => sendPlayerStateSync());
 
             vjsPlayer.on('ended', () => {
                 if (isAutoplayEnabled() && currentMediaName && window.activePlaybackSequence && window.activePlaybackSequence.length > 0) {
