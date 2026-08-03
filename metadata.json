@@ -1,0 +1,6 @@
+{
+  "name": "Android Media Server",
+  "description": "A feature-rich media server and player for Android with video transcoding, gestures, and playback progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

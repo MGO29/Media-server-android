@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="640dp"
+    android:viewportWidth="360"
+    android:viewportHeight="640">
+    
+    <!-- Deep Dark Canvas -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M0,0h360v640h-360z" />
+        
+    <!-- Ambient Wave Glow 1 -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M0,120 Q180,240 360,120 L360,0 L0,0 Z" />
+        
+    <!-- Ambient Wave Glow 2 -->
+    <path
+        android:fillColor="#1E1B4B"
+        android:pathData="M0,450 Q180,320 360,480 L360,640 L0,640 Z" />
+        
+    <!-- Central Streaming Ring Glow -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M180,260c-33.1,0 -60,26.9 -60,60s26.9,60 60,60 60,-26.9 60,-60 -26.9,-60 -60,-60zm0,96c-19.9,0 -36,-16.1 -36,-36s16.1,-36 36,-36 36,16.1 36,36 -16.1,36 -36,36z" />
+</vector>

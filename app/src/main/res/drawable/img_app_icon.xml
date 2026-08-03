@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background rounded square -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M18,12h72c9.9,0 18,8.1 18,18v48c0,9.9 -8.1,18 -18,18h-72c-9.9,0 -18,-8.1 -18,-18v-48c0,-9.9 8.1,-18 18,-18z" />
+        
+    <!-- Dark Inner Screen Card -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M24,22h60c5.5,0 10,4.5 10,10v44c0,5.5 -4.5,10 -10,10h-60c-5.5,0 -10,-4.5 -10,-10v-44c0,-5.5 4.5,-10 10,-10z" />
+        
+    <!-- TV Antenna / Wave Accent -->
+    <path
+        android:fillColor="#60A5FA"
+        android:pathData="M54,30c-11,0 -20,9 -20,20s9,20 20,20 20,-9 20,-20 -9,-20 -20,-20zm0,32c-6.6,0 -12,-5.4 -12,-12s5.4,-12 12,-12 12,5.4 12,12 -5.4,12 -12,12z" />
+        
+    <!-- Bright Play Symbol in Center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,40l18,10 -18,10z" />
+</vector>
